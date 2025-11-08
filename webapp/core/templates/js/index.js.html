@@ -1,0 +1,98 @@
+<script type="text/javascript">
+    let progress = document.querySelector('.loader-container .progress')
+    let todos_container = document.querySelector('.todos-container')
+    let newTodoForm = document.querySelector('.new-todo-container')
+    let todosList = []
+    let chat_id
+    let iniData
+
+
+    async function load_todo(url) {
+        await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}}).then(res => res.text()).then(res => {
+            todos_container.innerHTML = res
+        })
+    }
+
+    async function delete_todo(el, id) {
+        url = '{% url 'todo:delete' 0 %}'.replace('0', id)
+        await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}}).then(res => res.json()).then(res => {
+            if (res['status'] === 'ok') {
+                console.log('fdsjfjkdshfdkjs')
+                el.parentElement.parentElement.remove()
+            }
+        })
+    }
+
+    async function complete_todo(el, id) {
+        url = '{% url 'todo:complete' 0 %}'.replace('0', id)
+        await fetch(url, {headers: {'X-Requested-With': 'XMLHttpRequest'}}).then(res => res.json()).then(res => {
+            if (res['status'] === 'ok') {
+                let todo = el.parentElement.parentElement
+                todo.classList.add('completed')
+                todo.querySelector('.title').classList.add('completed')
+                todo.querySelector('.complete-btn').remove()
+            }
+        })
+    }
+
+    async function add_todo(e) {
+        e.preventDefault()
+        let data = new FormData(newTodoForm)
+        let url = '{% url 'todo:add' '0' %}'.replace('0', chat_id)
+        if (data.get('todo-title').trim().length === 0) {
+            return;
+        }
+        await fetch(url, {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            body: data
+        }).then(res => res.json()).then(res => {
+            let todo_template = `   <div class="todo" data-id="${res['id']}">
+        <div class="title">${data.get('todo-title')}</div>
+        <div class="btn-container">
+                <span class="complete-btn" onclick="complete_todo(this,${res['id']})">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+            <span class="remove-btn" onclick="delete_todo(this,${res['id']})">
+                        <i class="fa-solid fa-trash"></i>
+                    </span>
+        </div>
+    </div>`
+            todos_container.insertAdjacentHTML('afterbegin',todo_template)
+        })
+    }
+    async function load_webapp(){
+        let tg = window.Telegram.WebApp
+        tg.ready()
+        initData = tg.initDataUnsafe
+        chat_id = initData.user.id
+        tg.sendData(JSON.stringify({test:'arash'}))
+    }
+    window.addEventListener('load', () => {
+        load_webapp()
+        let url = '{% url 'todo:index' '0' %}'.replace('0',chat_id)
+        const loader = new EventSource(url)
+        loader.onmessage = (e) => {
+            let data = JSON.parse(e.data)
+            todosList.push(data['todo'])
+            progress.style.width = data['number'] * 10 + '%'
+            if (data['number'] === 10) {
+                loader.close()
+                document.querySelector('.loader-container').classList.add('hide')
+                setTimeout(() => {
+                }, 1000)
+                load_todo(url)
+            }
+        }
+        {% comment %}
+
+loader.onopen = ()=>{
+    console.log('connection is opened')
+}
+
+setTimeout(()=>{
+    document.querySelector('.loader-container').style.display = 'none'
+},2000).{% endcomment %}
+    })
+    newTodoForm.addEventListener('submit', add_todo)
+</script>

@@ -1,0 +1,15 @@
+{% for td in todos %}
+    <div class="todo {% if td.is_completed %}completed{% endif %}" data-id="{{ td.id }}">
+        <div class="title {% if td.is_completed %}completed{% endif %}">{{ td.title }}</div>
+        <div class="btn-container">
+            {% if not td.is_completed %}
+                <span class="complete-btn" onclick="complete_todo(this,{{ td.id }})">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+            {% endif %}
+            <span class="remove-btn" onclick="delete_todo(this,{{ td.id }})">
+                        <i class="fa-solid fa-trash"></i>
+                    </span>
+        </div>
+    </div>
+{% endfor %}
